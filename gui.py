@@ -1143,7 +1143,7 @@ class LoadBalancerGUI:
         ax.title.set_color(ModernColors.TEXT_PRIMARY)
     
     def _create_process_table(self, parent):
-        """Create the modern process table display with enhanced styling."""
+        """Create the modern process table display with custom dark theme."""
         panel = tk.Frame(parent, bg=ModernColors.BG_CARD,
                         highlightbackground=ModernColors.BG_CARD_HOVER,
                         highlightthickness=1)
@@ -1192,102 +1192,72 @@ class LoadBalancerGUI:
         )
         self.completed_count_label.pack(side=tk.LEFT)
         
-        # Create custom table frame with dark theme
-        table_container = tk.Frame(inner, bg="#0d1117", padx=2, pady=2)
+        # Table container with border
+        table_outer = tk.Frame(inner, bg="#30363d", padx=1, pady=1)
+        table_outer.pack(fill=tk.BOTH, expand=True)
+        
+        table_container = tk.Frame(table_outer, bg="#0d1117")
         table_container.pack(fill=tk.BOTH, expand=True)
         
-        # Create treeview with custom styling
-        tree_frame = tk.Frame(table_container, bg="#0d1117")
-        tree_frame.pack(fill=tk.BOTH, expand=True)
+        # Column headers
+        columns = [
+            ("PID", 55), ("Arrival", 60), ("Burst", 55), ("Remaining", 75),
+            ("Priority", 70), ("State", 85), ("CPU", 50), ("Wait", 50), ("Turnaround", 85)
+        ]
         
-        columns = ("PID", "Arrival", "Burst", "Remaining", "Priority",
-                   "State", "Processor", "Wait", "Turnaround")
+        header_row = tk.Frame(table_container, bg="#161b22")
+        header_row.pack(fill=tk.X)
         
-        # Configure custom style for this treeview
-        style = ttk.Style()
+        for col_name, col_width in columns:
+            tk.Label(header_row, text=col_name,
+                    font=("Helvetica Neue", 10, "bold"),
+                    bg="#161b22", fg="#58a6ff",
+                    width=col_width // 8,
+                    anchor=tk.CENTER,
+                    padx=5, pady=8).pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        # Dark theme treeview
-        style.configure("Dark.Treeview",
-                       background="#0d1117",
-                       foreground="#e6edf3",
-                       fieldbackground="#0d1117",
-                       font=("Helvetica Neue", 10),
-                       rowheight=28)
+        # Scrollable frame for rows
+        canvas_frame = tk.Frame(table_container, bg="#0d1117")
+        canvas_frame.pack(fill=tk.BOTH, expand=True)
         
-        style.configure("Dark.Treeview.Heading",
-                       background="#161b22",
-                       foreground="#58a6ff",
-                       font=("Helvetica Neue", 10, "bold"),
-                       relief="flat")
+        self.table_canvas = tk.Canvas(canvas_frame, bg="#0d1117", 
+                                      highlightthickness=0, height=200)
+        scrollbar = tk.Scrollbar(canvas_frame, orient=tk.VERTICAL, 
+                                command=self.table_canvas.yview)
         
-        style.map("Dark.Treeview",
-                 background=[('selected', '#1f6feb')],
-                 foreground=[('selected', '#ffffff')])
+        self.table_rows_frame = tk.Frame(self.table_canvas, bg="#0d1117")
         
-        style.map("Dark.Treeview.Heading",
-                 background=[('active', '#21262d')])
+        self.table_canvas.configure(yscrollcommand=scrollbar.set)
         
-        self.process_tree = ttk.Treeview(tree_frame, columns=columns,
-                                          show="headings", height=8,
-                                          style="Dark.Treeview")
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.table_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        # Configure columns with better widths
-        col_configs = {
-            "PID": {"width": 60, "text": "PID", "anchor": tk.CENTER},
-            "Arrival": {"width": 70, "text": "Arrival", "anchor": tk.CENTER},
-            "Burst": {"width": 65, "text": "Burst", "anchor": tk.CENTER},
-            "Remaining": {"width": 85, "text": "Remaining", "anchor": tk.CENTER},
-            "Priority": {"width": 80, "text": "Priority", "anchor": tk.CENTER},
-            "State": {"width": 95, "text": "State", "anchor": tk.CENTER},
-            "Processor": {"width": 80, "text": "CPU", "anchor": tk.CENTER},
-            "Wait": {"width": 60, "text": "Wait", "anchor": tk.CENTER},
-            "Turnaround": {"width": 95, "text": "Turnaround", "anchor": tk.CENTER}
-        }
+        self.canvas_window = self.table_canvas.create_window(
+            (0, 0), window=self.table_rows_frame, anchor=tk.NW
+        )
         
-        for col, config in col_configs.items():
-            self.process_tree.heading(col, text=config["text"])
-            self.process_tree.column(col, width=config["width"],
-                                      anchor=config["anchor"], minwidth=50)
+        # Bind scroll events
+        self.table_rows_frame.bind("<Configure>", self._on_table_frame_configure)
+        self.table_canvas.bind("<Configure>", self._on_table_canvas_configure)
         
-        # Custom scrollbars with dark theme
-        vsb_frame = tk.Frame(tree_frame, bg="#0d1117", width=12)
-        vsb_frame.pack(side=tk.RIGHT, fill=tk.Y)
+        # Mouse wheel scrolling
+        self.table_canvas.bind_all("<MouseWheel>", self._on_table_mousewheel)
         
-        vsb = tk.Canvas(vsb_frame, width=10, bg="#161b22", 
-                       highlightthickness=0, bd=0)
-        vsb.pack(fill=tk.Y, expand=True, padx=1, pady=1)
-        
-        # Use ttk scrollbar with custom style
-        style.configure("Dark.Vertical.TScrollbar",
-                       background="#30363d",
-                       troughcolor="#161b22",
-                       arrowcolor="#8b949e")
-        
-        vsb_ttk = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL,
-                               command=self.process_tree.yview,
-                               style="Dark.Vertical.TScrollbar")
-        
-        hsb_ttk = ttk.Scrollbar(table_container, orient=tk.HORIZONTAL,
-                               command=self.process_tree.xview,
-                               style="Dark.Horizontal.TScrollbar")
-        
-        self.process_tree.configure(yscrollcommand=vsb_ttk.set, 
-                                   xscrollcommand=hsb_ttk.set)
-        
-        # Pack tree and scrollbars
-        self.process_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        vsb_ttk.pack(side=tk.RIGHT, fill=tk.Y)
-        hsb_ttk.pack(side=tk.BOTTOM, fill=tk.X)
-        
-        # Add row tags for different states
-        self.process_tree.tag_configure('running', background='#1a4d1a', foreground='#4ade80')
-        self.process_tree.tag_configure('ready', background='#1a3a5c', foreground='#60a5fa')
-        self.process_tree.tag_configure('waiting', background='#4d3d1a', foreground='#fbbf24')
-        self.process_tree.tag_configure('completed', background='#1a1a2e', foreground='#9ca3af')
-        self.process_tree.tag_configure('new', background='#2d1a4d', foreground='#c084fc')
-        
-        # Bind double-click for details
-        self.process_tree.bind('<Double-1>', self._show_process_details)
+        # Store column config for row creation
+        self.table_columns = columns
+        self.table_row_widgets = {}
+    
+    def _on_table_frame_configure(self, event):
+        """Update scroll region when frame changes."""
+        self.table_canvas.configure(scrollregion=self.table_canvas.bbox("all"))
+    
+    def _on_table_canvas_configure(self, event):
+        """Update window width when canvas changes."""
+        self.table_canvas.itemconfig(self.canvas_window, width=event.width)
+    
+    def _on_table_mousewheel(self, event):
+        """Handle mouse wheel scrolling."""
+        self.table_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
     
     def _create_metrics_panel(self, parent):
         """Create the modern metrics dashboard."""
@@ -1886,22 +1856,52 @@ class LoadBalancerGUI:
             return
         
         for p in self.engine.all_processes:
-            # Determine tag based on state
-            state_tag = self._get_state_tag(p.state.name)
-            
-            self.process_tree.insert("", tk.END, iid=str(p.pid), values=(
-                f"P{p.pid}",
-                p.arrival_time,
-                p.burst_time,
-                p.remaining_time,
-                p.priority.name.capitalize(),
-                p.state.name.replace('_', ' ').title(),
-                f"CPU {p.processor_id}" if p.processor_id is not None else "—",
-                p.waiting_time,
-                "—"
-            ), tags=(state_tag,))
+            self._add_process_row(p)
         
         self._update_process_stats()
+    
+    def _add_process_row(self, process):
+        """Add a single process row to the custom table."""
+        # Get colors based on state
+        bg_color, fg_color = self._get_row_colors(process.state.name)
+        
+        row_frame = tk.Frame(self.table_rows_frame, bg=bg_color)
+        row_frame.pack(fill=tk.X, pady=1)
+        
+        # Store reference
+        self.table_row_widgets[str(process.pid)] = {
+            'frame': row_frame,
+            'labels': []
+        }
+        
+        turnaround = process.get_turnaround_time()
+        
+        values = [
+            f"P{process.pid}",
+            str(process.arrival_time),
+            str(process.burst_time),
+            str(process.remaining_time),
+            process.priority.name.capitalize(),
+            process.state.name.replace('_', ' ').title(),
+            f"CPU {process.processor_id}" if process.processor_id is not None else "—",
+            str(process.waiting_time),
+            str(turnaround) if turnaround is not None else "—"
+        ]
+        
+        for i, (col_name, col_width) in enumerate(self.table_columns):
+            label = tk.Label(row_frame, text=values[i],
+                           font=("Helvetica Neue", 10),
+                           bg=bg_color, fg=fg_color,
+                           width=col_width // 8,
+                           anchor=tk.CENTER,
+                           padx=5, pady=6)
+            label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            self.table_row_widgets[str(process.pid)]['labels'].append(label)
+        
+        # Bind click to show details
+        row_frame.bind('<Double-1>', lambda e, pid=process.pid: self._show_process_details_by_pid(pid))
+        for label in self.table_row_widgets[str(process.pid)]['labels']:
+            label.bind('<Double-1>', lambda e, pid=process.pid: self._show_process_details_by_pid(pid))
     
     def _update_process_table(self):
         """Update process table with current data and state-based coloring."""
@@ -1909,40 +1909,46 @@ class LoadBalancerGUI:
             return
         
         for p in self.engine.all_processes:
+            pid_str = str(p.pid)
+            
+            if pid_str not in self.table_row_widgets:
+                self._add_process_row(p)
+                continue
+            
             turnaround = p.get_turnaround_time()
-            turnaround_str = str(turnaround) if turnaround is not None else "—"
+            bg_color, fg_color = self._get_row_colors(p.state.name)
             
-            # Determine tag based on state
-            state_tag = self._get_state_tag(p.state.name)
+            values = [
+                f"P{p.pid}",
+                str(p.arrival_time),
+                str(p.burst_time),
+                str(p.remaining_time),
+                p.priority.name.capitalize(),
+                p.state.name.replace('_', ' ').title(),
+                f"CPU {p.processor_id}" if p.processor_id is not None else "—",
+                str(p.waiting_time),
+                str(turnaround) if turnaround is not None else "—"
+            ]
             
-            try:
-                self.process_tree.item(str(p.pid), values=(
-                    f"P{p.pid}",
-                    p.arrival_time,
-                    p.burst_time,
-                    p.remaining_time,
-                    p.priority.name.capitalize(),
-                    p.state.name.replace('_', ' ').title(),
-                    f"CPU {p.processor_id}" if p.processor_id is not None else "—",
-                    p.waiting_time,
-                    turnaround_str
-                ), tags=(state_tag,))
-            except tk.TclError:
-                pass  # Item may not exist
+            row_data = self.table_row_widgets[pid_str]
+            row_data['frame'].configure(bg=bg_color)
+            
+            for i, label in enumerate(row_data['labels']):
+                label.configure(text=values[i], bg=bg_color, fg=fg_color)
         
         self._update_process_stats()
     
-    def _get_state_tag(self, state_name: str) -> str:
-        """Get the appropriate tag for a process state."""
-        state_map = {
-            'RUNNING': 'running',
-            'READY': 'ready',
-            'WAITING': 'waiting',
-            'COMPLETED': 'completed',
-            'NEW': 'new',
-            'TERMINATED': 'completed'
+    def _get_row_colors(self, state_name: str) -> tuple:
+        """Get background and foreground colors for a row based on state."""
+        color_map = {
+            'RUNNING': ('#1a4d1a', '#4ade80'),
+            'READY': ('#1a3a5c', '#60a5fa'),
+            'WAITING': ('#4d3d1a', '#fbbf24'),
+            'COMPLETED': ('#1a1a2e', '#9ca3af'),
+            'NEW': ('#2d1a4d', '#c084fc'),
+            'TERMINATED': ('#1a1a2e', '#9ca3af')
         }
-        return state_map.get(state_name, 'new')
+        return color_map.get(state_name, ('#0d1117', '#e6edf3'))
     
     def _update_process_stats(self):
         """Update the process statistics in the header."""
@@ -1960,25 +1966,29 @@ class LoadBalancerGUI:
         self.waiting_count_label.config(text=f"⏳ Waiting: {waiting}")
         self.completed_count_label.config(text=f"✅ Done: {completed}")
     
-    def _show_process_details(self, event):
-        """Show detailed information about a process when double-clicked."""
-        selection = self.process_tree.selection()
-        if not selection:
-            return
-        
-        pid = selection[0]
+    def _show_process_details_by_pid(self, pid):
+        """Show detailed information about a process by PID."""
         if not self.engine:
             return
         
         # Find the process
         process = None
         for p in self.engine.all_processes:
-            if str(p.pid) == pid:
+            if p.pid == pid:
                 process = p
                 break
         
         if not process:
             return
+        
+        self._display_process_details_window(process)
+    
+    def _show_process_details(self, event):
+        """Show detailed information about a process when double-clicked (legacy)."""
+        pass  # Now using _show_process_details_by_pid instead
+    
+    def _display_process_details_window(self, process):
+        """Display the process details window."""
         
         # Create detail popup
         detail_window = tk.Toplevel(self.root)
@@ -2048,8 +2058,9 @@ class LoadBalancerGUI:
     
     def _clear_process_table(self):
         """Clear all items from the process table."""
-        for item in self.process_tree.get_children():
-            self.process_tree.delete(item)
+        for widget_data in self.table_row_widgets.values():
+            widget_data['frame'].destroy()
+        self.table_row_widgets = {}
     
     def _reset_metrics(self):
         """Reset all metric displays."""
