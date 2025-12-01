@@ -175,9 +175,10 @@ dynamic_load_balancer/
 ├── config.py            # Configuration constants and parameters
 ├── process.py           # Process class and generator
 ├── processor.py         # Processor class and manager
-├── load_balancer.py     # Load balancing algorithms (Phase 3)
+├── load_balancer.py     # Load balancing algorithms (Round Robin, Least Loaded, Threshold)
+├── simulation.py        # Simulation engine and batch simulator
+├── metrics.py           # Performance metrics and comparisons
 ├── gui.py               # Graphical user interface (Phase 4)
-├── metrics.py           # Performance calculations (Phase 5)
 ├── utils.py             # Helper functions and utilities
 ├── requirements.txt     # Python dependencies
 ├── README.md            # This file
@@ -191,9 +192,10 @@ dynamic_load_balancer/
 | `config.py` | Configuration classes, enums, and constants |
 | `process.py` | Process class with state management and lifecycle |
 | `processor.py` | Processor simulation with queue and execution logic |
-| `load_balancer.py` | Implementation of balancing algorithms |
-| `gui.py` | Tkinter-based graphical interface |
-| `metrics.py` | Performance metric calculations |
+| `load_balancer.py` | Implementation of balancing algorithms (Strategy pattern) |
+| `simulation.py` | Simulation engine and batch comparison |
+| `metrics.py` | Performance metric calculations (turnaround, waiting, fairness) |
+| `gui.py` | Full Tkinter GUI with real-time visualization and Matplotlib charts |
 | `utils.py` | Logging, statistics, export utilities |
 
 ## 📊 Performance Metrics
