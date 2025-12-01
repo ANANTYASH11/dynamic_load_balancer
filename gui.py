@@ -101,7 +101,7 @@ class ModernColors:
     
     # Process state colors
     STATE_NEW = "#6c757d"
-    STATE_READY = "#4361ee"
+    STATE_READY = "#3559f8"
     STATE_RUNNING = "#06d6a0"
     STATE_WAITING = "#ffd166"
     STATE_COMPLETED = "#20c997"
@@ -767,8 +767,8 @@ class LoadBalancerGUI:
         help_menu.add_command(label="📖 Algorithm Info", command=self._show_algorithm_info)
     
     def _create_main_layout(self):
-        """Create the modern main window layout."""
-        # Main container with padding
+        """Create the modern main window layout that fills the screen."""
+        # Main container - fills entire window
         main_frame = tk.Frame(self.root, bg=ModernColors.BG_DARK, padx=15, pady=15)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
@@ -778,22 +778,34 @@ class LoadBalancerGUI:
         # Top section: Control Panel
         self._create_control_panel(main_frame)
         
-        # Middle section: Visualization (Processors + Charts)
+        # Middle section: Visualization (Processors + Charts) - fills remaining space
         middle_frame = tk.Frame(main_frame, bg=ModernColors.BG_DARK)
         middle_frame.pack(fill=tk.BOTH, expand=True, pady=15)
         
         # Left: Processors Panel
         self._create_processor_panel(middle_frame)
         
-        # Right: Charts and Process Table
+        # Right: Charts and Process Table with resizable panes
         right_frame = tk.Frame(middle_frame, bg=ModernColors.BG_DARK)
         right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(15, 0))
         
-        self._create_gantt_chart(right_frame)
-        self._create_process_table(right_frame)
+        # Create PanedWindow for resizable sections
+        self.right_paned = tk.PanedWindow(right_frame, orient=tk.VERTICAL,
+                                          bg=ModernColors.BG_DARK,
+                                          sashwidth=8,
+                                          sashrelief=tk.FLAT,
+                                          sashpad=2)
+        self.right_paned.pack(fill=tk.BOTH, expand=True)
         
-        # Bottom section: Metrics Dashboard
-        self._create_metrics_panel(main_frame)
+        # Top pane: Gantt chart
+        gantt_frame = tk.Frame(self.right_paned, bg=ModernColors.BG_DARK)
+        self._create_gantt_chart(gantt_frame)
+        self.right_paned.add(gantt_frame, minsize=200, height=320)
+        
+        # Bottom pane: Process table - fills remaining space
+        table_frame = tk.Frame(self.right_paned, bg=ModernColors.BG_DARK)
+        self._create_process_table(table_frame)
+        self.right_paned.add(table_frame, minsize=200)
     
     def _create_header(self, parent):
         """Create the header section with title and status."""
@@ -1143,18 +1155,16 @@ class LoadBalancerGUI:
         ax.title.set_color(ModernColors.TEXT_PRIMARY)
     
     def _create_process_table(self, parent):
-        """Create the modern process table display with custom dark theme."""
+        """Create the modern process table display using Text widget."""
+        # Main panel - now resizable via PanedWindow
         panel = tk.Frame(parent, bg=ModernColors.BG_CARD,
                         highlightbackground=ModernColors.BG_CARD_HOVER,
                         highlightthickness=1)
-        panel.pack(fill=tk.BOTH, expand=True, pady=(15, 0))
+        panel.pack(fill=tk.BOTH, expand=True, pady=(5, 0))
         
-        inner = tk.Frame(panel, bg=ModernColors.BG_CARD, padx=15, pady=15)
-        inner.pack(fill=tk.BOTH, expand=True)
-        
-        # Header with title and stats
-        header_frame = tk.Frame(inner, bg=ModernColors.BG_CARD)
-        header_frame.pack(fill=tk.X, pady=(0, 10))
+        # Header row with title and stats
+        header_frame = tk.Frame(panel, bg=ModernColors.BG_CARD)
+        header_frame.pack(fill=tk.X, padx=15, pady=(10, 5))
         
         tk.Label(header_frame, text="📋 Process Details",
                 font=("Helvetica Neue", 14, "bold"),
@@ -1162,172 +1172,72 @@ class LoadBalancerGUI:
                 fg=ModernColors.PRIMARY).pack(side=tk.LEFT)
         
         # Process stats on right
-        self.process_stats_frame = tk.Frame(header_frame, bg=ModernColors.BG_CARD)
-        self.process_stats_frame.pack(side=tk.RIGHT)
+        stats_frame = tk.Frame(header_frame, bg=ModernColors.BG_CARD)
+        stats_frame.pack(side=tk.RIGHT)
         
-        self.running_count_label = tk.Label(
-            self.process_stats_frame,
-            text="🏃 Running: 0",
-            font=("Helvetica Neue", 10),
-            bg=ModernColors.BG_CARD,
-            fg=ModernColors.SUCCESS
-        )
+        self.running_count_label = tk.Label(stats_frame, text="🏃 Running: 0",
+            font=("Helvetica Neue", 10), bg=ModernColors.BG_CARD, fg=ModernColors.SUCCESS)
         self.running_count_label.pack(side=tk.LEFT, padx=(0, 15))
         
-        self.waiting_count_label = tk.Label(
-            self.process_stats_frame,
-            text="⏳ Waiting: 0",
-            font=("Helvetica Neue", 10),
-            bg=ModernColors.BG_CARD,
-            fg=ModernColors.WARNING
-        )
+        self.waiting_count_label = tk.Label(stats_frame, text="⏳ Waiting: 0",
+            font=("Helvetica Neue", 10), bg=ModernColors.BG_CARD, fg=ModernColors.WARNING)
         self.waiting_count_label.pack(side=tk.LEFT, padx=(0, 15))
         
-        self.completed_count_label = tk.Label(
-            self.process_stats_frame,
-            text="✅ Done: 0",
-            font=("Helvetica Neue", 10),
-            bg=ModernColors.BG_CARD,
-            fg=ModernColors.INFO
-        )
+        self.completed_count_label = tk.Label(stats_frame, text="✅ Done: 0",
+            font=("Helvetica Neue", 10), bg=ModernColors.BG_CARD, fg=ModernColors.INFO)
         self.completed_count_label.pack(side=tk.LEFT)
         
-        # Table container with border
-        table_outer = tk.Frame(inner, bg="#30363d", padx=1, pady=1)
-        table_outer.pack(fill=tk.BOTH, expand=True)
+        # Table area with border
+        table_border = tk.Frame(panel, bg="#30363d")
+        table_border.pack(fill=tk.BOTH, expand=True, padx=15, pady=(5, 10))
         
-        table_container = tk.Frame(table_outer, bg="#0d1117")
-        table_container.pack(fill=tk.BOTH, expand=True)
+        table_inner = tk.Frame(table_border, bg="#0d1117")
+        table_inner.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
         
         # Column headers
-        columns = [
-            ("PID", 55), ("Arrival", 60), ("Burst", 55), ("Remaining", 75),
-            ("Priority", 70), ("State", 85), ("CPU", 50), ("Wait", 50), ("Turnaround", 85)
-        ]
+        columns = ["PID", "Arrival", "Burst", "Remain", "Priority", "State", "CPU", "Wait", "TAT"]
+        col_widths = [6, 7, 6, 7, 8, 10, 6, 6, 8]
         
-        header_row = tk.Frame(table_container, bg="#161b22")
+        header_row = tk.Frame(table_inner, bg="#161b22")
         header_row.pack(fill=tk.X)
         
-        for col_name, col_width in columns:
-            tk.Label(header_row, text=col_name,
-                    font=("Helvetica Neue", 10, "bold"),
-                    bg="#161b22", fg="#58a6ff",
-                    width=col_width // 8,
-                    anchor=tk.CENTER,
-                    padx=5, pady=8).pack(side=tk.LEFT, fill=tk.X, expand=True)
+        for col, width in zip(columns, col_widths):
+            tk.Label(header_row, text=col, font=("Courier", 10, "bold"),
+                    bg="#161b22", fg="#58a6ff", width=width).pack(side=tk.LEFT, padx=1, pady=4)
         
-        # Scrollable frame for rows
-        canvas_frame = tk.Frame(table_container, bg="#0d1117")
-        canvas_frame.pack(fill=tk.BOTH, expand=True)
+        # Text widget for data rows
+        text_container = tk.Frame(table_inner, bg="#0d1117")
+        text_container.pack(fill=tk.BOTH, expand=True)
         
-        self.table_canvas = tk.Canvas(canvas_frame, bg="#0d1117", 
-                                      highlightthickness=0, height=200)
-        scrollbar = tk.Scrollbar(canvas_frame, orient=tk.VERTICAL, 
-                                command=self.table_canvas.yview)
+        self.process_text = tk.Text(text_container, 
+                                    bg="#0d1117", fg="#e6edf3",
+                                    font=("Courier", 10),
+                                    height=6, wrap=tk.NONE,
+                                    cursor="arrow",
+                                    highlightthickness=0, borderwidth=0,
+                                    padx=3, pady=3)
         
-        self.table_rows_frame = tk.Frame(self.table_canvas, bg="#0d1117")
-        
-        self.table_canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar = tk.Scrollbar(text_container, command=self.process_text.yview)
+        self.process_text.configure(yscrollcommand=scrollbar.set)
         
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.table_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.process_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        self.canvas_window = self.table_canvas.create_window(
-            (0, 0), window=self.table_rows_frame, anchor=tk.NW
-        )
+        # Configure text tags for states
+        self.process_text.tag_configure("running", foreground="#4ade80", background="#1a4d1a")
+        self.process_text.tag_configure("ready", foreground="#60a5fa", background="#1a3a5c")
+        self.process_text.tag_configure("waiting", foreground="#fbbf24", background="#4d3d1a")
+        self.process_text.tag_configure("completed", foreground="#9ca3af", background="#1a1a2e")
+        self.process_text.tag_configure("new", foreground="#c084fc", background="#2d1a4d")
+        self.process_text.tag_configure("default", foreground="#e6edf3", background="#0d1117")
         
-        # Bind scroll events
-        self.table_rows_frame.bind("<Configure>", self._on_table_frame_configure)
-        self.table_canvas.bind("<Configure>", self._on_table_canvas_configure)
-        
-        # Mouse wheel scrolling
-        self.table_canvas.bind_all("<MouseWheel>", self._on_table_mousewheel)
-        
-        # Store column config for row creation
-        self.table_columns = columns
+        # Store column widths
+        self.table_col_widths = col_widths
         self.table_row_widgets = {}
-    
-    def _on_table_frame_configure(self, event):
-        """Update scroll region when frame changes."""
-        self.table_canvas.configure(scrollregion=self.table_canvas.bbox("all"))
-    
-    def _on_table_canvas_configure(self, event):
-        """Update window width when canvas changes."""
-        self.table_canvas.itemconfig(self.canvas_window, width=event.width)
-    
-    def _on_table_mousewheel(self, event):
-        """Handle mouse wheel scrolling."""
-        self.table_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-    
-    def _create_metrics_panel(self, parent):
-        """Create the modern metrics dashboard."""
-        panel = tk.Frame(parent, bg=ModernColors.BG_CARD,
-                        highlightbackground=ModernColors.BG_CARD_HOVER,
-                        highlightthickness=1)
-        panel.pack(fill=tk.X)
         
-        inner = tk.Frame(panel, bg=ModernColors.BG_CARD, padx=20, pady=15)
-        inner.pack(fill=tk.X)
-        
-        # Header row
-        header_frame = tk.Frame(inner, bg=ModernColors.BG_CARD)
-        header_frame.pack(fill=tk.X, pady=(0, 15))
-        
-        tk.Label(header_frame, text="📈 Performance Metrics",
-                font=("Segoe UI", 14, "bold"),
-                bg=ModernColors.BG_CARD,
-                fg=ModernColors.PRIMARY).pack(side=tk.LEFT)
-        
-        # Current algorithm label
-        algo_frame = tk.Frame(header_frame, bg=ModernColors.BG_CARD)
-        algo_frame.pack(side=tk.RIGHT)
-        
-        tk.Label(algo_frame, text="Algorithm:",
-                font=("Segoe UI", 10),
-                bg=ModernColors.BG_CARD,
-                fg=ModernColors.TEXT_SECONDARY).pack(side=tk.LEFT)
-        
-        self.current_algo_label = tk.Label(algo_frame, text="—",
-                                            font=("Segoe UI", 11, "bold"),
-                                            bg=ModernColors.BG_CARD,
-                                            fg=ModernColors.PRIMARY)
-        self.current_algo_label.pack(side=tk.LEFT, padx=(8, 0))
-        
-        # Metrics cards grid
-        metrics_frame = tk.Frame(inner, bg=ModernColors.BG_CARD)
-        metrics_frame.pack(fill=tk.X)
-        
-        # Row 1: Process metrics
-        metrics_row1 = [
-            ("Completed", "completed", "0/0", "✅", ModernColors.SUCCESS),
-            ("Avg Turnaround", "turnaround", "0.00", "⏱️", ModernColors.INFO),
-            ("Avg Waiting", "waiting", "0.00", "⏳", ModernColors.WARNING),
-            ("Avg Response", "response", "0.00", "⚡", ModernColors.PRIMARY),
-        ]
-        
-        row1_frame = tk.Frame(metrics_frame, bg=ModernColors.BG_CARD)
-        row1_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        for label, key, default, icon, color in metrics_row1:
-            card = ModernMetricCard(row1_frame, label, default, icon, color)
-            card.pack(side=tk.LEFT, padx=(0, 10), fill=tk.X, expand=True)
-            self.metric_cards[key] = card
-        
-        # Row 2: System metrics
-        metrics_row2 = [
-            ("Avg Utilization", "utilization", "0.0%", "📊", ModernColors.SUCCESS),
-            ("Load Balance", "lbi", "0.0000", "⚖️", ModernColors.INFO),
-            ("Jain's Fairness", "fairness", "0.0000", "🎯", ModernColors.SECONDARY),
-            ("Migrations", "migrations", "0", "🔄", ModernColors.ACCENT),
-        ]
-        
-        row2_frame = tk.Frame(metrics_frame, bg=ModernColors.BG_CARD)
-        row2_frame.pack(fill=tk.X)
-        
-        for label, key, default, icon, color in metrics_row2:
-            card = ModernMetricCard(row2_frame, label, default, icon, color)
-            card.pack(side=tk.LEFT, padx=(0, 10), fill=tk.X, expand=True)
-            self.metric_cards[key] = card
+        # Add placeholder
+        self.process_text.insert(tk.END, " Click 'Start' to see process data...\n", "default")
+        self.process_text.configure(state=tk.DISABLED)
     
     def _update_speed_label(self, event=None):
         """Update the speed label when slider changes."""
@@ -1374,7 +1284,6 @@ class LoadBalancerGUI:
         self._update_button_states()
         self.status_label.config(text="Running", fg=ModernColors.SUCCESS)
         self._draw_status_led(ModernColors.SUCCESS)
-        self.current_algo_label.config(text=algorithm.value)
         
         # Start simulation in background thread
         self.simulation_thread = threading.Thread(target=self._run_simulation, 
@@ -1450,7 +1359,6 @@ class LoadBalancerGUI:
         self._draw_status_led(ModernColors.TEXT_MUTED)
         self.time_label.config(text="⏱️ Time: 0")
         self.progress_var.set(0)
-        self.current_algo_label.config(text="—")
     
     def _update_config(self):
         """Update configuration from GUI inputs."""
@@ -1523,10 +1431,6 @@ class LoadBalancerGUI:
         # Update Gantt chart more frequently (every 2 time units or when there's data)
         if state['time'] % 2 == 0 or state['time'] <= 5:
             self._update_gantt_chart()
-        
-        # Update basic metrics
-        self.metric_cards['completed'].set_value(f"{completed}/{total}")
-        self.metric_cards['migrations'].set_value(str(state['migrations']))
     
     def _handle_completion(self, result):
         """Handle simulation completion."""
@@ -1535,17 +1439,8 @@ class LoadBalancerGUI:
         self.status_label.config(text="Completed", fg=ModernColors.SUCCESS)
         self._draw_status_led(ModernColors.PRIMARY)
         
-        # Update final metrics
+        # Get metrics for completion message
         metrics = result.system_metrics
-        self.metric_cards['completed'].set_value(
-            f"{metrics.completed_processes}/{metrics.total_processes}")
-        self.metric_cards['turnaround'].set_value(f"{metrics.avg_turnaround_time:.2f}")
-        self.metric_cards['waiting'].set_value(f"{metrics.avg_waiting_time:.2f}")
-        self.metric_cards['response'].set_value(f"{metrics.avg_response_time:.2f}")
-        self.metric_cards['utilization'].set_value(f"{metrics.avg_utilization*100:.1f}%")
-        self.metric_cards['lbi'].set_value(f"{metrics.load_balance_index:.4f}")
-        self.metric_cards['fairness'].set_value(f"{metrics.jains_fairness_index:.4f}")
-        self.metric_cards['migrations'].set_value(str(metrics.total_migrations))
         
         # Final gantt chart update
         self._update_gantt_chart()
@@ -1860,20 +1755,15 @@ class LoadBalancerGUI:
         
         self._update_process_stats()
     
+    def _format_row(self, values):
+        """Format a row of values with fixed widths."""
+        formatted = []
+        for val, width in zip(values, self.table_col_widths):
+            formatted.append(str(val).center(width))
+        return " ".join(formatted)
+    
     def _add_process_row(self, process):
-        """Add a single process row to the custom table."""
-        # Get colors based on state
-        bg_color, fg_color = self._get_row_colors(process.state.name)
-        
-        row_frame = tk.Frame(self.table_rows_frame, bg=bg_color)
-        row_frame.pack(fill=tk.X, pady=1)
-        
-        # Store reference
-        self.table_row_widgets[str(process.pid)] = {
-            'frame': row_frame,
-            'labels': []
-        }
-        
+        """Add a single process row to the text widget."""
         turnaround = process.get_turnaround_time()
         
         values = [
@@ -1881,74 +1771,62 @@ class LoadBalancerGUI:
             str(process.arrival_time),
             str(process.burst_time),
             str(process.remaining_time),
-            process.priority.name.capitalize(),
-            process.state.name.replace('_', ' ').title(),
-            f"CPU {process.processor_id}" if process.processor_id is not None else "—",
+            process.priority.name[:6].capitalize(),
+            process.state.name.replace('_', ' ')[:9].title(),
+            f"CPU{process.processor_id}" if process.processor_id is not None else "—",
             str(process.waiting_time),
             str(turnaround) if turnaround is not None else "—"
         ]
         
-        for i, (col_name, col_width) in enumerate(self.table_columns):
-            label = tk.Label(row_frame, text=values[i],
-                           font=("Helvetica Neue", 10),
-                           bg=bg_color, fg=fg_color,
-                           width=col_width // 8,
-                           anchor=tk.CENTER,
-                           padx=5, pady=6)
-            label.pack(side=tk.LEFT, fill=tk.X, expand=True)
-            self.table_row_widgets[str(process.pid)]['labels'].append(label)
+        row_text = self._format_row(values) + "\n"
+        tag = self._get_state_tag(process.state.name)
         
-        # Bind click to show details
-        row_frame.bind('<Double-1>', lambda e, pid=process.pid: self._show_process_details_by_pid(pid))
-        for label in self.table_row_widgets[str(process.pid)]['labels']:
-            label.bind('<Double-1>', lambda e, pid=process.pid: self._show_process_details_by_pid(pid))
+        self.process_text.configure(state=tk.NORMAL)
+        self.process_text.insert(tk.END, row_text, tag)
+        self.process_text.configure(state=tk.DISABLED)
     
     def _update_process_table(self):
         """Update process table with current data and state-based coloring."""
         if not self.engine:
             return
         
+        # Clear and rebuild the text content
+        self.process_text.configure(state=tk.NORMAL)
+        self.process_text.delete("1.0", tk.END)
+        
         for p in self.engine.all_processes:
-            pid_str = str(p.pid)
-            
-            if pid_str not in self.table_row_widgets:
-                self._add_process_row(p)
-                continue
-            
             turnaround = p.get_turnaround_time()
-            bg_color, fg_color = self._get_row_colors(p.state.name)
+            tag = self._get_state_tag(p.state.name)
             
             values = [
                 f"P{p.pid}",
                 str(p.arrival_time),
                 str(p.burst_time),
                 str(p.remaining_time),
-                p.priority.name.capitalize(),
-                p.state.name.replace('_', ' ').title(),
-                f"CPU {p.processor_id}" if p.processor_id is not None else "—",
+                p.priority.name[:6].capitalize(),
+                p.state.name.replace('_', ' ')[:9].title(),
+                f"CPU{p.processor_id}" if p.processor_id is not None else "—",
                 str(p.waiting_time),
                 str(turnaround) if turnaround is not None else "—"
             ]
             
-            row_data = self.table_row_widgets[pid_str]
-            row_data['frame'].configure(bg=bg_color)
-            
-            for i, label in enumerate(row_data['labels']):
-                label.configure(text=values[i], bg=bg_color, fg=fg_color)
+            row_text = self._format_row(values) + "\n"
+            self.process_text.insert(tk.END, row_text, tag)
         
+        self.process_text.configure(state=tk.DISABLED)
         self._update_process_stats()
     
-    def _get_row_colors(self, state_name: str) -> tuple:
-        """Get background and foreground colors for a row based on state."""
-        color_map = {
-            'RUNNING': ('#1a4d1a', '#4ade80'),
-            'READY': ('#1a3a5c', '#60a5fa'),
-            'WAITING': ('#4d3d1a', '#fbbf24'),
-            'COMPLETED': ('#1a1a2e', '#9ca3af'),
-            'NEW': ('#2d1a4d', '#c084fc'),
-            'TERMINATED': ('#1a1a2e', '#9ca3af')
+    def _get_state_tag(self, state_name: str) -> str:
+        """Get the tag name for a process state."""
+        tag_map = {
+            'RUNNING': 'running',
+            'READY': 'ready',
+            'WAITING': 'waiting',
+            'COMPLETED': 'completed',
+            'NEW': 'new',
+            'TERMINATED': 'completed'
         }
-        return color_map.get(state_name, ('#0d1117', '#e6edf3'))
+        return tag_map.get(state_name, 'default')
     
     def _update_process_stats(self):
         """Update the process statistics in the header."""
@@ -2058,20 +1936,14 @@ class LoadBalancerGUI:
     
     def _clear_process_table(self):
         """Clear all items from the process table."""
-        for widget_data in self.table_row_widgets.values():
-            widget_data['frame'].destroy()
+        self.process_text.configure(state=tk.NORMAL)
+        self.process_text.delete("1.0", tk.END)
+        self.process_text.configure(state=tk.DISABLED)
         self.table_row_widgets = {}
     
     def _reset_metrics(self):
         """Reset all metric displays."""
-        self.metric_cards['completed'].set_value("0/0")
-        self.metric_cards['turnaround'].set_value("0.00")
-        self.metric_cards['waiting'].set_value("0.00")
-        self.metric_cards['response'].set_value("0.00")
-        self.metric_cards['utilization'].set_value("0.0%")
-        self.metric_cards['lbi'].set_value("0.0000")
-        self.metric_cards['fairness'].set_value("0.0000")
-        self.metric_cards['migrations'].set_value("0")
+        pass  # Metrics panel removed
     
     def _reset_processor_displays(self):
         """Reset all processor displays."""
