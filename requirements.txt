@@ -1,0 +1,29 @@
+# Dynamic Load Balancing Simulator - Requirements
+# Python 3.8+ required
+
+# GUI Framework (Tkinter is included with Python, but we list it for documentation)
+# tkinter  # Built-in with Python
+
+# Data Visualization
+matplotlib>=3.5.0
+
+# No additional dependencies required - using standard library:
+# - threading (built-in)
+# - queue (built-in)
+# - random (built-in)
+# - time (built-in)
+# - dataclasses (built-in, Python 3.7+)
+# - enum (built-in)
+# - logging (built-in)
+# - json (built-in)
+# - csv (built-in)
+# - statistics (built-in)
+# - pathlib (built-in)
+# - argparse (built-in)
+# - typing (built-in)
+# - collections (built-in)
+
+# Optional development dependencies (not required for running):
+# pytest>=7.0.0  # For running tests
+# black>=22.0.0  # For code formatting
+# flake8>=4.0.0  # For linting
