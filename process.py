@@ -222,6 +222,7 @@ class Process:
             # Record final execution segment
             if self._last_execution_start is not None:
                 self.execution_history.append({
+                    'type': 'segment',
                     'processor_id': self.processor_id,
                     'start': self._last_execution_start,
                     'end': current_time
@@ -245,6 +246,7 @@ class Process:
             # If was running, record the execution segment
             if self.state == ProcessState.RUNNING and self._last_execution_start is not None:
                 self.execution_history.append({
+                    'type': 'segment',
                     'processor_id': self.processor_id,
                     'start': self._last_execution_start,
                     'end': current_time
@@ -294,6 +296,7 @@ class Process:
             # Record execution segment
             if self._last_execution_start is not None:
                 self.execution_history.append({
+                    'type': 'segment',
                     'processor_id': self.processor_id,
                     'start': self._last_execution_start,
                     'end': current_time
@@ -346,6 +349,7 @@ class Process:
             dest_processor: Destination processor ID (for migrations)
         """
         entry = {
+            'type': 'event',
             'time': time,
             'event': event,
             'processor_id': self.processor_id

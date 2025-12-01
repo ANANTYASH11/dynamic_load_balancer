@@ -199,19 +199,18 @@ Options:
   --test             Run module self-tests
   --processors, -p   Number of processors (default: 4)
   --processes, -n    Number of processes (default: 20)
-  --algorithm, -a    Load balancing algorithm (round_robin|least_loaded|threshold)
+  --algorithm, -a    Load balancing algorithm: rr, round_robin, ll, least_loaded, tb, threshold
   --version, -v      Show version information
-  --debug            Enable debug logging
 ```
 
 ### Example Sessions
 
 ```bash
 # Quick simulation with 8 processors using threshold algorithm
-python main.py --cli -p 8 -n 50 -a threshold
+python main.py --cli -p 8 -n 50 -a tb
 
-# GUI with custom configuration
-python main.py -p 6 -n 30 -a least_loaded
+# CLI with least loaded algorithm
+python main.py --cli -p 6 -n 30 -a ll
 
 # Run validation tests
 python test_suite.py

@@ -292,7 +292,7 @@ class SimulationEngine:
         self._stop_requested = False
         
         if self.processor_manager:
-            self.processor_manager.reset()
+            self.processor_manager.reset_all()
         if self.load_balancer:
             self.load_balancer.reset()
         if self.metrics_calculator:

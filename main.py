@@ -71,12 +71,16 @@ def print_banner():
     print(banner)
 
 
-def run_cli_simulation():
+def run_cli_simulation(config: SimulationConfig = None, algorithm: LoadBalancingAlgorithm = None):
     """
     Run a command-line simulation for testing purposes.
     
     This provides a quick way to test the core simulation logic
     without the GUI. Uses the new SimulationEngine for proper execution.
+    
+    Args:
+        config: Simulation configuration (uses defaults if None)
+        algorithm: Load balancing algorithm to use (uses config default if None)
     """
     print_banner()
     print("\n[CLI Mode - Testing Core Simulation]\n")
@@ -85,28 +89,35 @@ def run_cli_simulation():
     from simulation import SimulationEngine, BatchSimulator
     from load_balancer import LoadBalancerFactory
     
-    # Initialize configuration
-    config = SimulationConfig(
-        num_processors=4,
-        num_processes=10,
-        time_quantum=4
-    )
+    # Use provided config or defaults
+    if config is None:
+        config = SimulationConfig(
+            num_processors=4,
+            num_processes=10,
+            time_quantum=4
+        )
     
-    logger = setup_logging()
+    # Use provided algorithm or config default
+    if algorithm is None:
+        algorithm = config.default_algorithm
+    else:
+        config.default_algorithm = algorithm
+    
+    logger = setup_logging(name="LoadBalancer")
     logger.info("Starting CLI simulation")
     
     print(f"Configuration:")
     print(f"  Processors: {config.num_processors}")
     print(f"  Processes: {config.num_processes}")
     print(f"  Time Quantum: {config.time_quantum}")
-    print(f"  Algorithm: {config.default_algorithm.value}")
+    print(f"  Algorithm: {algorithm.value}")
     
     # Create and run simulation engine
-    print(f"\n[Running Simulation with {config.default_algorithm.value}]")
+    print(f"\n[Running Simulation with {algorithm.value}]")
     print("-" * 60)
     
     engine = SimulationEngine(config)
-    engine.initialize(algorithm=config.default_algorithm)
+    engine.initialize(algorithm=algorithm)
     
     # Show generated processes
     print(f"\nGenerated Processes:")
@@ -449,11 +460,28 @@ Examples:
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
     
+    # Map algorithm short names to enum values
+    algorithm_map = {
+        'rr': LoadBalancingAlgorithm.ROUND_ROBIN,
+        'round_robin': LoadBalancingAlgorithm.ROUND_ROBIN,
+        'll': LoadBalancingAlgorithm.LEAST_LOADED,
+        'least_loaded': LoadBalancingAlgorithm.LEAST_LOADED,
+        'tb': LoadBalancingAlgorithm.THRESHOLD_BASED,
+        'threshold': LoadBalancingAlgorithm.THRESHOLD_BASED,
+    }
+    
     # Run appropriate mode
     if args.test:
         return run_module_tests()
     elif args.cli:
-        run_cli_simulation()
+        # Build config from CLI args
+        cli_config = SimulationConfig(
+            num_processors=args.processors,
+            num_processes=args.processes,
+            time_quantum=4
+        )
+        cli_algorithm = algorithm_map.get(args.algorithm, LoadBalancingAlgorithm.ROUND_ROBIN)
+        run_cli_simulation(config=cli_config, algorithm=cli_algorithm)
         return 0
     else:
         return run_gui()

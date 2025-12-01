@@ -94,8 +94,8 @@ class SimulationConfig:
     """
     # Processor Configuration
     num_processors: int = 4
-    min_processors: int = 1
-    max_processors: int = 8
+    min_processors: int = 2
+    max_processors: int = 16
     
     # Process Configuration
     num_processes: int = 20
@@ -224,6 +224,7 @@ class GUIConfig:
     # Update Settings
     update_interval: int = 100  # milliseconds
     chart_update_interval: int = 500  # milliseconds
+    animation_speed: int = 100  # milliseconds delay between steps when running with delay
     
     # Color Scheme for Visualization
     # Using a traffic light system for load indication

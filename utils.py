@@ -199,17 +199,18 @@ class ColoredFormatter(logging.Formatter):
         return super().format(record)
 
 
-def setup_logging(config: LoggingConfig = None) -> SimulationLogger:
+def setup_logging(name: str = "LoadBalancer", config: LoggingConfig = None) -> SimulationLogger:
     """
     Set up and return the simulation logger.
     
     Args:
+        name: Logger name
         config: Logging configuration
         
     Returns:
         Configured SimulationLogger instance
     """
-    return SimulationLogger(config=config)
+    return SimulationLogger(name=name, config=config)
 
 
 # =============================================================================
