@@ -40,6 +40,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, FancyBboxPatch
 import matplotlib.colors as mcolors
+import matplotlib.patheffects
 
 # Import project modules
 from config import (
@@ -627,6 +628,7 @@ class LoadBalancerGUI:
         
         # Gantt chart data
         self.gantt_data: List[Dict] = []
+        self.gantt_rectangles: List[Dict] = []  # For hover detection
         
         # Create GUI components
         self._configure_styles()
@@ -1039,7 +1041,7 @@ class LoadBalancerGUI:
             self.processor_widgets.append(widget)
     
     def _create_gantt_chart(self, parent):
-        """Create the modern Gantt chart visualization."""
+        """Create the modern Gantt chart visualization with enhanced features."""
         panel = tk.Frame(parent, bg=ModernColors.BG_CARD,
                         highlightbackground=ModernColors.BG_CARD_HOVER,
                         highlightthickness=1)
@@ -1048,35 +1050,97 @@ class LoadBalancerGUI:
         inner = tk.Frame(panel, bg=ModernColors.BG_CARD, padx=15, pady=15)
         inner.pack(fill=tk.BOTH, expand=True)
         
-        # Header
-        tk.Label(inner, text="📊 Process Execution Timeline",
-                font=("Segoe UI", 14, "bold"),
-                bg=ModernColors.BG_CARD,
-                fg=ModernColors.PRIMARY).pack(anchor=tk.W, pady=(0, 10))
+        # Header with title and controls
+        header_frame = tk.Frame(inner, bg=ModernColors.BG_CARD)
+        header_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Create matplotlib figure with dark theme
-        self.gantt_fig = Figure(figsize=(9, 3), dpi=100, facecolor=ModernColors.BG_CARD)
+        tk.Label(header_frame, text="📊 Process Execution Timeline",
+                font=("Helvetica Neue", 14, "bold"),
+                bg=ModernColors.BG_CARD,
+                fg=ModernColors.PRIMARY).pack(side=tk.LEFT)
+        
+        # Timeline stats frame (right side of header)
+        self.timeline_stats_frame = tk.Frame(header_frame, bg=ModernColors.BG_CARD)
+        self.timeline_stats_frame.pack(side=tk.RIGHT)
+        
+        self.timeline_time_label = tk.Label(
+            self.timeline_stats_frame, 
+            text="⏱ Duration: 0",
+            font=("Helvetica Neue", 10),
+            bg=ModernColors.BG_CARD,
+            fg=ModernColors.TEXT_SECONDARY
+        )
+        self.timeline_time_label.pack(side=tk.LEFT, padx=(0, 15))
+        
+        self.timeline_processes_label = tk.Label(
+            self.timeline_stats_frame, 
+            text="📦 Processes: 0",
+            font=("Helvetica Neue", 10),
+            bg=ModernColors.BG_CARD,
+            fg=ModernColors.TEXT_SECONDARY
+        )
+        self.timeline_processes_label.pack(side=tk.LEFT)
+        
+        # Create matplotlib figure with dark theme - larger and better proportioned
+        self.gantt_fig = Figure(figsize=(10, 4), dpi=100, facecolor=ModernColors.BG_CARD)
         self.gantt_ax = self.gantt_fig.add_subplot(111)
-        self._style_chart_axes(self.gantt_ax)
-        self.gantt_fig.tight_layout()
+        self._style_gantt_axes(self.gantt_ax)
+        
+        # Add padding for the legend
+        self.gantt_fig.subplots_adjust(left=0.08, right=0.82, top=0.92, bottom=0.15)
         
         # Embed in Tkinter
         self.gantt_canvas = FigureCanvasTkAgg(self.gantt_fig, master=inner)
         self.gantt_canvas.draw()
-        self.gantt_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        canvas_widget = self.gantt_canvas.get_tk_widget()
+        canvas_widget.pack(fill=tk.BOTH, expand=True)
+        
+        # Bind mouse events for tooltips
+        self.gantt_canvas.mpl_connect('motion_notify_event', self._on_gantt_hover)
+        
+        # Tooltip label (hidden by default)
+        self.gantt_tooltip = tk.Label(
+            inner,
+            text="",
+            font=("Helvetica Neue", 9),
+            bg="#2d2d44",
+            fg=ModernColors.TEXT_PRIMARY,
+            padx=8,
+            pady=4,
+            relief=tk.SOLID,
+            borderwidth=1
+        )
+        
+        # Store rectangle data for hover detection
+        self.gantt_rectangles = []
+        
+        # Legend frame below chart
+        self.legend_frame = tk.Frame(inner, bg=ModernColors.BG_CARD)
+        self.legend_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        # Legend title
+        tk.Label(self.legend_frame, text="Legend:",
+                font=("Helvetica Neue", 9, "bold"),
+                bg=ModernColors.BG_CARD,
+                fg=ModernColors.TEXT_SECONDARY).pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Legend items container
+        self.legend_items_frame = tk.Frame(self.legend_frame, bg=ModernColors.BG_CARD)
+        self.legend_items_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
     
-    def _style_chart_axes(self, ax):
-        """Apply modern dark styling to chart axes."""
-        ax.set_facecolor(ModernColors.BG_CARD)
+    def _style_gantt_axes(self, ax):
+        """Apply modern dark styling to Gantt chart axes."""
+        ax.set_facecolor("#0d1117")  # Darker background for better contrast
         ax.tick_params(colors=ModernColors.TEXT_SECONDARY, labelsize=9)
         ax.spines['bottom'].set_color(ModernColors.TEXT_MUTED)
-        ax.spines['top'].set_color(ModernColors.BG_CARD)
+        ax.spines['top'].set_visible(False)
         ax.spines['left'].set_color(ModernColors.TEXT_MUTED)
-        ax.spines['right'].set_color(ModernColors.BG_CARD)
+        ax.spines['right'].set_visible(False)
         ax.xaxis.label.set_color(ModernColors.TEXT_SECONDARY)
         ax.yaxis.label.set_color(ModernColors.TEXT_SECONDARY)
-        ax.set_xlabel("Time", fontsize=10, fontfamily='Segoe UI')
-        ax.set_ylabel("Processor", fontsize=10, fontfamily='Segoe UI')
+        ax.set_xlabel("Time Units", fontsize=10, fontweight='bold')
+        ax.set_ylabel("Processors", fontsize=10, fontweight='bold')
+        ax.title.set_color(ModernColors.TEXT_PRIMARY)
     
     def _create_process_table(self, parent):
         """Create the modern process table display."""
@@ -1477,12 +1541,20 @@ class LoadBalancerGUI:
         pass
     
     def _update_gantt_chart(self):
-        """Update the Gantt chart visualization with modern styling."""
+        """Update the Gantt chart visualization with modern styling and animations."""
         self.gantt_ax.clear()
-        self._style_chart_axes(self.gantt_ax)
+        self._style_gantt_axes(self.gantt_ax)
+        self.gantt_rectangles.clear()
         
         if not self.gantt_data:
+            # Show empty state message
+            self.gantt_ax.text(0.5, 0.5, "Waiting for simulation data...",
+                             transform=self.gantt_ax.transAxes,
+                             ha='center', va='center',
+                             fontsize=12, color=ModernColors.TEXT_MUTED,
+                             style='italic')
             self.gantt_canvas.draw()
+            self._update_timeline_stats(0, 0)
             return
         
         # Consolidate consecutive entries for same process
@@ -1500,54 +1572,215 @@ class LoadBalancerGUI:
         process_colors = {}
         color_index = 0
         
+        # Modern color palette for processes - vibrant and distinct
+        modern_colors = [
+            '#6366f1',  # Indigo
+            '#22c55e',  # Green
+            '#f59e0b',  # Amber
+            '#ec4899',  # Pink
+            '#06b6d4',  # Cyan
+            '#8b5cf6',  # Violet
+            '#ef4444',  # Red
+            '#14b8a6',  # Teal
+            '#f97316',  # Orange
+            '#84cc16',  # Lime
+            '#a855f7',  # Purple
+            '#0ea5e9',  # Sky
+        ]
+        
         for entry in consolidated:
             pid = entry['process']
             if pid not in process_colors:
-                process_colors[pid] = ModernColors.PROCESSOR_COLORS[color_index % len(ModernColors.PROCESSOR_COLORS)]
+                process_colors[pid] = modern_colors[color_index % len(modern_colors)]
                 color_index += 1
             
-            # Create rounded rectangle effect
+            # Create 3D-effect rounded rectangle
+            x = entry['start']
+            y = entry['processor'] - 0.4
+            width = entry['end'] - entry['start']
+            height = 0.8
+            
+            # Shadow effect (darker rectangle behind)
+            shadow = FancyBboxPatch(
+                (x + 0.05, y - 0.05),
+                width, height,
+                boxstyle="round,pad=0.02,rounding_size=0.1",
+                facecolor='#000000',
+                alpha=0.3,
+                linewidth=0
+            )
+            self.gantt_ax.add_patch(shadow)
+            
+            # Main rectangle with gradient effect
             rect = FancyBboxPatch(
-                (entry['start'], entry['processor'] - 0.35),
-                entry['end'] - entry['start'],
-                0.7,
-                boxstyle="round,pad=0.02,rounding_size=0.15",
+                (x, y),
+                width, height,
+                boxstyle="round,pad=0.02,rounding_size=0.1",
                 facecolor=process_colors[pid],
                 edgecolor='white',
-                linewidth=0.5,
-                alpha=0.9
+                linewidth=1,
+                alpha=0.95
             )
             self.gantt_ax.add_patch(rect)
             
-            # Add process label if wide enough
-            width = entry['end'] - entry['start']
-            if width >= 2:
+            # Store rectangle data for hover
+            self.gantt_rectangles.append({
+                'x': x, 'y': y, 'width': width, 'height': height,
+                'pid': pid, 'processor': entry['processor'],
+                'start': entry['start'], 'end': entry['end'],
+                'color': process_colors[pid]
+            })
+            
+            # Add process label with better styling
+            if width >= 1.5:
+                # White text with subtle shadow for readability
                 self.gantt_ax.text(
-                    entry['start'] + width/2,
+                    x + width/2,
                     entry['processor'],
                     f"P{pid}",
                     ha='center', va='center',
-                    fontsize=8, fontweight='bold',
-                    color='white'
+                    fontsize=9 if width >= 3 else 7,
+                    fontweight='bold',
+                    color='white',
+                    path_effects=[
+                        matplotlib.patheffects.withStroke(linewidth=2, foreground='black')
+                    ] if width >= 2 else None
                 )
         
         # Configure axes with modern styling
         max_time = max(e['end'] for e in consolidated) if consolidated else 10
         self.gantt_ax.set_xlim(-0.5, max_time + 1)
-        self.gantt_ax.set_ylim(-0.5, num_processors - 0.5)
+        self.gantt_ax.set_ylim(-0.6, num_processors - 0.4)
         self.gantt_ax.set_yticks(range(num_processors))
-        self.gantt_ax.set_yticklabels([f"CPU {i}" for i in range(num_processors)])
-        self.gantt_ax.grid(True, axis='x', alpha=0.2, color=ModernColors.TEXT_MUTED)
+        self.gantt_ax.set_yticklabels([f"CPU {i}" for i in range(num_processors)],
+                                      fontweight='bold')
         
-        self.gantt_fig.tight_layout()
+        # Add subtle grid lines
+        self.gantt_ax.grid(True, axis='x', alpha=0.15, color='white', linestyle='--')
+        self.gantt_ax.grid(True, axis='y', alpha=0.1, color='white', linestyle='-')
+        
+        # Add time markers at intervals
+        if max_time > 0:
+            interval = max(1, int(max_time / 10))
+            for t in range(0, int(max_time) + 1, interval):
+                self.gantt_ax.axvline(x=t, color=ModernColors.TEXT_MUTED, 
+                                     alpha=0.3, linestyle=':', linewidth=0.5)
+        
+        # Add current time indicator if simulation is running
+        if self.is_running and self.engine:
+            current_t = self.engine.current_time
+            self.gantt_ax.axvline(x=current_t, color='#ef4444', 
+                                 linestyle='-', linewidth=2, alpha=0.8)
+            self.gantt_ax.text(current_t, num_processors - 0.3, f"t={current_t}",
+                             fontsize=8, color='#ef4444', ha='center', fontweight='bold')
+        
+        self.gantt_fig.tight_layout(rect=[0.05, 0.1, 0.78, 0.95])
         self.gantt_canvas.draw()
+        
+        # Update legend with process colors
+        self._update_gantt_legend(process_colors)
+        
+        # Update timeline stats
+        unique_processes = len(process_colors)
+        self._update_timeline_stats(max_time, unique_processes)
+    
+    def _on_gantt_hover(self, event):
+        """Handle mouse hover on Gantt chart for tooltips."""
+        if event.inaxes != self.gantt_ax or not self.gantt_rectangles:
+            self.gantt_tooltip.place_forget()
+            return
+        
+        x, y = event.xdata, event.ydata
+        if x is None or y is None:
+            self.gantt_tooltip.place_forget()
+            return
+        
+        # Check if hovering over any rectangle
+        for rect in self.gantt_rectangles:
+            if (rect['x'] <= x <= rect['x'] + rect['width'] and
+                rect['y'] <= y <= rect['y'] + rect['height']):
+                # Show tooltip
+                duration = rect['end'] - rect['start']
+                tooltip_text = (f"Process P{rect['pid']}\n"
+                               f"CPU: {rect['processor']}\n"
+                               f"Time: {rect['start']} → {rect['end']}\n"
+                               f"Duration: {duration} units")
+                self.gantt_tooltip.config(text=tooltip_text)
+                
+                # Position tooltip near cursor
+                canvas_widget = self.gantt_canvas.get_tk_widget()
+                x_pos = event.x + 15
+                y_pos = event.y + 15
+                self.gantt_tooltip.place(in_=canvas_widget, x=x_pos, y=y_pos)
+                return
+        
+        self.gantt_tooltip.place_forget()
+    
+    def _update_gantt_legend(self, process_colors: dict):
+        """Update the legend with process colors."""
+        # Clear existing legend items
+        for widget in self.legend_items_frame.winfo_children():
+            widget.destroy()
+        
+        # Create legend items for each process (limit to 12 to avoid overflow)
+        items_shown = 0
+        for pid, color in sorted(process_colors.items()):
+            if items_shown >= 12:
+                # Show "and more..." indicator
+                tk.Label(self.legend_items_frame, 
+                        text=f"+{len(process_colors) - 12} more",
+                        font=("Helvetica Neue", 8),
+                        bg=ModernColors.BG_CARD,
+                        fg=ModernColors.TEXT_MUTED).pack(side=tk.LEFT, padx=5)
+                break
+            
+            item_frame = tk.Frame(self.legend_items_frame, bg=ModernColors.BG_CARD)
+            item_frame.pack(side=tk.LEFT, padx=4)
+            
+            # Color box
+            color_box = tk.Canvas(item_frame, width=12, height=12, 
+                                 bg=ModernColors.BG_CARD, highlightthickness=0)
+            color_box.pack(side=tk.LEFT, padx=(0, 3))
+            color_box.create_rectangle(1, 1, 11, 11, fill=color, outline='white', width=1)
+            
+            # Process label
+            tk.Label(item_frame, text=f"P{pid}",
+                    font=("Helvetica Neue", 8),
+                    bg=ModernColors.BG_CARD,
+                    fg=ModernColors.TEXT_SECONDARY).pack(side=tk.LEFT)
+            
+            items_shown += 1
+    
+    def _update_timeline_stats(self, duration: float, num_processes: int):
+        """Update timeline statistics labels."""
+        self.timeline_time_label.config(text=f"⏱ Duration: {int(duration)} units")
+        self.timeline_processes_label.config(text=f"📦 Processes: {num_processes}")
     
     def _clear_gantt_chart(self):
         """Clear the Gantt chart."""
         self.gantt_data.clear()
+        self.gantt_rectangles.clear()
         self.gantt_ax.clear()
-        self._style_chart_axes(self.gantt_ax)
+        self._style_gantt_axes(self.gantt_ax)
+        
+        # Show waiting message
+        self.gantt_ax.text(0.5, 0.5, "Waiting for simulation data...",
+                         transform=self.gantt_ax.transAxes,
+                         ha='center', va='center',
+                         fontsize=12, color=ModernColors.TEXT_MUTED,
+                         style='italic')
+        
         self.gantt_canvas.draw()
+        
+        # Clear legend
+        for widget in self.legend_items_frame.winfo_children():
+            widget.destroy()
+        
+        # Reset stats
+        self._update_timeline_stats(0, 0)
+        
+        # Hide tooltip
+        self.gantt_tooltip.place_forget()
     
     def _populate_process_table(self):
         """Populate the process table with initial data."""
