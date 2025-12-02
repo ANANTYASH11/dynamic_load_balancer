@@ -62,7 +62,7 @@ def print_banner():
 ╔══════════════════════════════════════════════════════════════════════╗
 ║                                                                      ║
 ║       DYNAMIC LOAD BALANCING IN MULTIPROCESSOR SYSTEMS               ║
-║                        Simulator v{VERSION}                             ║
+║                        Simulator v{VERSION}                          ║
 ║                                                                      ║
 ║   An educational simulation demonstrating OS load balancing concepts ║
 ║                                                                      ║
